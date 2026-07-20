@@ -1,0 +1,64 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+.Python
+
+# === Virtual Environment ===
+.venv/
+venv/
+env/
+ENV/
+
+# === Environment / Secrets ===
+.env
+# .env.example is intentionally committed — it's the template, never contains real values
+
+# === SQLite Database (contains real financial data — never commit) ===
+db/nifty100.db
+db/*.db
+
+# === Raw / Supporting Data (large Excel files — tracked via DVC or shared drive) ===
+data/raw/
+data/supporting/
+
+# === Generated Outputs ===
+output/
+reports/htmlcov/
+reports/*.pdf
+reports/*.html
+
+# === Logs ===
+*.log
+logs/
+
+# === Test & Coverage Artifacts ===
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+.tox/
+
+# === IDE / Editor ===
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# === Jupyter Notebooks (outputs only — strip before committing) ===
+notebooks/.ipynb_checkpoints/
+# Notebook outputs should be cleared before commit (use nbstripout)
+
+# === Build / Dist ===
+dist/
+build/
+*.egg-info/
+*.egg
+
+# === Pre-commit cache ===
+.pre-commit-cache/
