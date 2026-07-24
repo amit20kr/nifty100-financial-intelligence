@@ -37,10 +37,17 @@ def temp_db_loader(tmp_path_factory, monkeypatch_module):
 # Let's write the tests using the actual `DataLoader`.
 
 
+@pytest.mark.modifies_db
 def test_load_all_and_idempotency():
     """
     Idempotency Test: Run load twice with fresh loaders; assert identical row counts
     and zero FK violations on both runs - no duplicate-PK IntegrityError on rerun.
+
+    IMPORTANT: This test calls save_to_db() which wipes computed Sprint 2 KPI columns
+    from financial_ratios (resets to the 1,041 pre-seeded rows only). It is tagged
+    `modifies_db` and excluded from `make test-unit`. Run only via `make test-etl-load`
+    or explicitly: pytest tests/etl/test_db.py::test_load_all_and_idempotency
+    Always re-run `make populate` after this test if integration tests are needed.
     """
     # First run
     loader1 = DataLoader()

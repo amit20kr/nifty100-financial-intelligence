@@ -37,7 +37,12 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("migrate")
 
-MIGRATION_VERSION = "002_add_ratio_columns"
+# SCHEMA CANONICAL SOURCE OF TRUTH: src/etl/schema.sql
+# migration files (002, 003, 004...) exist ONLY to upgrade pre-existing dev DBs
+# that predate the schema.sql bake-in. For any new DB, schema.sql is authoritative.
+# If you add a column: (1) add to src/etl/schema.sql first, (2) mirror to db/schema.sql,
+# (3) add to COLUMNS_TO_ADD here for existing-DB upgrades. Never edit only one.
+MIGRATION_VERSION = "004_add_pct_numeric_columns"
 
 # All columns to add: (column_name, sql_type)
 COLUMNS_TO_ADD = [
@@ -54,6 +59,17 @@ COLUMNS_TO_ADD = [
     ("revenue_cagr_5yr_flag", "TEXT"),
     ("pat_cagr_5yr_flag", "TEXT"),
     ("eps_cagr_5yr_flag", "TEXT"),
+    # Migration 003
+    ("cashflow_pattern_code", "TEXT"),
+    ("cashflow_pattern_label", "TEXT"),
+    ("pattern_flag", "TEXT"),
+    ("cfo_quality_label", "TEXT"),
+    ("composite_quality_score_flag", "TEXT"),
+    ("capex_intensity_label", "TEXT"),
+    ("fcf_conversion_flag", "TEXT"),
+    # Migration 004 — numeric counterparts for label columns (Bug #3 fix)
+    ("capex_intensity_pct", "REAL"),
+    ("fcf_conversion_pct", "REAL"),
 ]
 
 

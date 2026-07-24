@@ -159,10 +159,13 @@ CREATE TABLE stock_prices (
 );
 
 -- 11. financial_ratios
+-- Sprint 1 columns: pre-seeded from Screener.in financial_ratios.xlsx
+-- Sprint 2 columns: computed by ratio engine (Days 08-11), populated by Day 12 script
 CREATE TABLE financial_ratios (
     id TEXT,
     company_id TEXT,
     year TEXT,
+    -- Sprint 1 pre-seeded (may be overwritten by engine in Day 12)
     net_profit_margin_pct REAL,
     operating_profit_margin_pct REAL,
     return_on_equity_pct REAL,
@@ -176,6 +179,32 @@ CREATE TABLE financial_ratios (
     dividend_payout_ratio_pct REAL,
     total_debt_cr REAL,
     cash_from_operations_cr REAL,
+    -- Sprint 2 Day 08: profitability
+    return_on_capital_employed_pct REAL,
+    return_on_assets_pct REAL,
+    -- Sprint 2 Day 09: leverage & efficiency
+    net_debt_cr REAL,
+    icr_label TEXT,
+    icr_at_risk_flag INTEGER,
+    high_leverage_flag INTEGER,
+    -- Sprint 2 Day 10: CAGR
+    revenue_cagr_5yr REAL,
+    pat_cagr_5yr REAL,
+    eps_cagr_5yr REAL,
+    revenue_cagr_5yr_flag TEXT,
+    pat_cagr_5yr_flag TEXT,
+    eps_cagr_5yr_flag TEXT,
+    -- Sprint 2 Day 11: CFO quality & cashflow patterns
+    composite_quality_score REAL,
+    composite_quality_score_flag TEXT,
+    cfo_quality_label TEXT,
+    cashflow_pattern_code TEXT,
+    cashflow_pattern_label TEXT,
+    pattern_flag TEXT,
+    capex_intensity_label TEXT,            -- Asset Light / Moderate / Capital Intensive
+    capex_intensity_pct REAL,              -- abs(investing_activity)/sales*100
+    fcf_conversion_flag TEXT,              -- edge-case flag for FCF/OP calculation
+    fcf_conversion_pct REAL,               -- FCF/operating_profit*100
     PRIMARY KEY (company_id, year),
     FOREIGN KEY (company_id) REFERENCES companies(id)
 );

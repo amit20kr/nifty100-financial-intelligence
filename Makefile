@@ -1,4 +1,4 @@
-.PHONY: load ratios migrate test report dashboard api clean setup validate db-check clean-db coverage
+.PHONY: load ratios migrate populate test test-unit test-integration report dashboard api clean setup validate db-check clean-db coverage
 
 setup:
 	python -m venv .venv
@@ -20,10 +20,27 @@ migrate:
 	.venv/Scripts/python db/migrations/migrate.py
 
 test:
-	.venv/Scripts/pytest tests/ -v
+	.venv/Scripts/pytest tests/ -v -m "not requires_populated_db and not modifies_db"
+
+test-unit:
+	.venv/Scripts/pytest tests/ -q -m "not requires_populated_db and not modifies_db"
+
+populate:
+	.venv/Scripts/python scripts/populate_ratios.py
+
+test-integration: populate
+	.venv/Scripts/pytest tests/etl/test_financial_ratios_population.py -v
+
+test-etl-load:
+	.venv/Scripts/pytest tests/etl/test_db.py -v
+
+test-all-sequential:
+	.venv/Scripts/pytest tests/ -q -m "not requires_populated_db and not modifies_db"
+	.venv/Scripts/python scripts/populate_ratios.py
+	.venv/Scripts/pytest tests/etl/test_financial_ratios_population.py -v
 
 coverage:
-	.venv/Scripts/pytest tests/ --cov=src --cov-report=html:reports/htmlcov --cov-report=term-missing
+	.venv/Scripts/pytest tests/ -m "not requires_populated_db and not modifies_db" --cov=src --cov-report=html:reports/htmlcov --cov-report=term-missing
 
 report:
 	python -m src.reporting.pdf_generator

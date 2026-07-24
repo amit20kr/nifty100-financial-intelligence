@@ -40,3 +40,42 @@ class CagrFlag(str, Enum):
     DECLINE_TO_LOSS = "DECLINE_TO_LOSS"
     TURNAROUND = "TURNAROUND"
     BOTH_NEGATIVE = "BOTH_NEGATIVE"
+
+
+class FcfConversionFlag(str, Enum):
+    ZERO_OP_PROFIT = "ZERO_OP_PROFIT"
+    NEGATIVE_OP_PROFIT = "NEGATIVE_OP_PROFIT"
+    NEGATIVE_FCF_POSITIVE_OP_PROFIT = "NEGATIVE_FCF_POSITIVE_OP_PROFIT"
+    BOTH_NEGATIVE = "BOTH_NEGATIVE"
+
+
+class CfoQualityLabel(str, Enum):
+    HIGH_QUALITY = "High Quality"
+    MODERATE = "Moderate"
+    ACCRUAL_RISK = "Accrual Risk"
+
+
+class CapexIntensityLabel(str, Enum):
+    ASSET_LIGHT = "Asset Light"
+    MODERATE = "Moderate"
+    CAPITAL_INTENSIVE = "Capital Intensive"
+
+
+class CashflowPatternLabel(str, Enum):
+    REINVESTOR = "Reinvestor"
+    SHAREHOLDER_RETURNS = "Shareholder Returns"
+    LIQUIDATING_ASSETS = "Liquidating Assets"
+    DISTRESS_SIGNAL = "Distress Signal"
+    GROWTH_FUNDED_BY_DEBT = "Growth Funded by Debt"
+    CASH_ACCUMULATOR = "Cash Accumulator"
+    PRE_REVENUE = "Pre-Revenue"
+    MIXED = "Mixed"
+    UNCLASSIFIED = "Unclassified"
+
+
+class CashflowPatternFlag(str, Enum):
+    UNDEFINED_COMBINATION = "UNDEFINED_COMBINATION"
+
+
+class CfoQualityScoreFlag(str, Enum):
+    INSUFFICIENT_YEARS = "INSUFFICIENT_YEARS"
