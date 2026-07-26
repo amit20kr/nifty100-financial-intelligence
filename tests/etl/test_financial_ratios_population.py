@@ -45,7 +45,8 @@ DB_PATH = os.getenv("DB_PATH", "db/nifty100.db")
 MIN_ROWS = 1100
 EXPECTED_COMPANIES = 92
 
-# All 14+ KPI columns required by spec; none may be entirely NULL after Day 12
+# All KPI columns required by spec; none may be entirely NULL after Day 12.
+# Covers the original 22 plus 13 previously unchecked flag/label columns.
 REQUIRED_NON_NULL_COLS = [
     # Sprint 1 pre-seeded (overwritten by engine)
     "net_profit_margin_pct",
@@ -61,7 +62,7 @@ REQUIRED_NON_NULL_COLS = [
     "dividend_payout_ratio_pct",
     "total_debt_cr",
     "cash_from_operations_cr",
-    # Sprint 2 Day 08–11 computed
+    # Sprint 2 Day 08-11 computed
     "return_on_capital_employed_pct",
     "return_on_assets_pct",
     "net_debt_cr",
@@ -71,6 +72,18 @@ REQUIRED_NON_NULL_COLS = [
     "cashflow_pattern_code",
     "capex_intensity_pct",
     "fcf_conversion_pct",
+    # Flag/label columns (previously unchecked — Claude review Day 14)
+    "icr_label",
+    "icr_at_risk_flag",
+    "revenue_cagr_5yr_flag",
+    "pat_cagr_5yr_flag",
+    "eps_cagr_5yr_flag",
+    "composite_quality_score_flag",
+    "cfo_quality_label",
+    "cashflow_pattern_label",
+    "pattern_flag",
+    "capex_intensity_label",
+    "fcf_conversion_flag",
 ]
 
 
@@ -262,3 +275,39 @@ def test_upsert_idempotency_row_count(db_conn):
     assert (
         row_count_before >= MIN_ROWS
     ), "Table is not populated — run scripts/populate_ratios.py before this test."
+
+
+def test_high_leverage_flag_financials_suppression(db_conn):
+    """
+    high_leverage_flag must be NULL for all Financials-sector rows (not 0).
+    A bug that sets it to 0 (False) for Financials would look identical to
+    'correctly suppressed' without this targeted check.
+    Non-Financials rows must have at least some non-NULL values.
+    """
+    # Financials rows must ALL be NULL
+    financials_non_null = db_conn.execute(
+        """
+        SELECT COUNT(*) FROM financial_ratios f
+        JOIN sectors s ON f.company_id = s.company_id
+        WHERE s.broad_sector = 'Financials'
+          AND f.high_leverage_flag IS NOT NULL
+        """
+    ).fetchone()[0]
+    assert financials_non_null == 0, (
+        f"high_leverage_flag is non-NULL for {financials_non_null} Financials rows "
+        "— should be NULL (not applicable) for all Financials companies."
+    )
+
+    # Non-Financials must have at least some non-NULL values
+    non_fin_non_null = db_conn.execute(
+        """
+        SELECT COUNT(*) FROM financial_ratios f
+        JOIN sectors s ON f.company_id = s.company_id
+        WHERE s.broad_sector != 'Financials'
+          AND f.high_leverage_flag IS NOT NULL
+        """
+    ).fetchone()[0]
+    assert non_fin_non_null > 0, (
+        "high_leverage_flag is NULL for all non-Financials rows — "
+        "some companies should have an explicit True/False flag."
+    )

@@ -96,7 +96,9 @@ edge_log_path = os.path.join(OUTPUT_DIR, "ratio_edge_cases.log")
 edge_logger = logging.getLogger("ratio_edge_cases")
 edge_logger.setLevel(logging.INFO)
 if not edge_logger.handlers:
-    fh = logging.FileHandler(edge_log_path)
+    # mode='w' ensures idempotency: each populate run starts with a fresh log,
+    # not appending duplicates from prior runs. Triage script runs post-populate.
+    fh = logging.FileHandler(edge_log_path, mode="w")
     fh.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
     edge_logger.addHandler(fh)
 
@@ -331,16 +333,37 @@ def populate_financial_ratios() -> None:
     )
 
     # Build company-keyed lookup dicts for O(1) access
-    def _build_lookup(df: pd.DataFrame) -> Dict[str, Dict[int, Dict]]:
-        """Returns {company_id: {cal_year: row_dict}}"""
+    # Primary lookup: keyed by (company_id, year_str) for exact row matching
+    def _build_lookup(df: pd.DataFrame) -> Dict[str, Dict[str, Dict]]:
+        """Returns {company_id: {year_str: row_dict}}"""
+        result: Dict[str, Dict[str, Dict]] = defaultdict(dict)
+        for _, row in df.iterrows():
+            result[row["company_id"]][row["year"]] = row.to_dict()
+        return result
+
+    # CAGR/CFO quality lookup: keyed by (company_id, cal_year_int)
+    # When collisions occur (2024-03 vs 2024-09), fiscal year-end (YYYY-03) wins
+    def _build_cagr_lookup(df: pd.DataFrame) -> Dict[str, Dict[int, Dict]]:
+        """Returns {company_id: {cal_year: row_dict}} with YYYY-03 priority."""
         result: Dict[str, Dict[int, Dict]] = defaultdict(dict)
         for _, row in df.iterrows():
-            result[row["company_id"]][int(row["_cal_year"])] = row.to_dict()
+            cy = int(row["_cal_year"])
+            year_str = row["year"]
+            existing = result[row["company_id"]].get(cy)
+            # If no existing entry, or existing is not YYYY-03 and this is, use this
+            if existing is None or (
+                not existing.get("year", "").endswith("-03")
+                and year_str.endswith("-03")
+            ):
+                result[row["company_id"]][cy] = row.to_dict()
         return result
 
     pnl_lookup = _build_lookup(pnl_df)
     bs_lookup = _build_lookup(bs_df)
     cf_lookup = _build_lookup(cf_df)
+    # CAGR lookups — int-keyed for trailing window arithmetic
+    pnl_cagr_lookup = _build_cagr_lookup(pnl_df)
+    cf_cagr_lookup = _build_cagr_lookup(cf_df)
 
     # ------------------------------------------------------------------
     # Phase 3: Per-row KPI computation
@@ -356,13 +379,13 @@ def populate_financial_ratios() -> None:
         if cal_yr is None:
             continue
 
-        pnl = pnl_lookup.get(company_id, {}).get(cal_yr)
-        bs = bs_lookup.get(company_id, {}).get(cal_yr)
-        cf = cf_lookup.get(company_id, {}).get(cal_yr)
+        pnl = pnl_lookup.get(company_id, {}).get(year_str)
+        bs = bs_lookup.get(company_id, {}).get(year_str)
+        cf = cf_lookup.get(company_id, {}).get(year_str)
         broad_sector = sectors_map.get(company_id, "")
         company_meta = companies_map.get(company_id, {})
-        company_pnl_by_year = pnl_lookup.get(company_id, {})
-        company_cf_by_year = cf_lookup.get(company_id, {})
+        company_pnl_by_year = pnl_cagr_lookup.get(company_id, {})
+        company_cf_by_year = cf_cagr_lookup.get(company_id, {})
 
         try:
             # ----- Direct-copy columns (Bug #4 fix) -----
@@ -510,7 +533,9 @@ def populate_financial_ratios() -> None:
                 # Leverage
                 "debt_to_equity": de_result.value if de_result else None,
                 "high_leverage_flag": (
-                    int(de_result.high_leverage_flag) if de_result else None
+                    int(de_result.high_leverage_flag)
+                    if de_result and de_result.high_leverage_flag is not None
+                    else None
                 ),
                 "interest_coverage": icr_result.value,
                 "icr_label": icr_result.label,

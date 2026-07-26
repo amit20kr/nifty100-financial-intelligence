@@ -86,10 +86,10 @@ class DebtEquityResult(NamedTuple):
     """Return type for debt_to_equity()."""
 
     value: float  # 0.0 if debt-free; never None
-    high_leverage_flag: (
-        bool  # True if D/E > threshold AND broad_sector != FINANCIALS_SECTOR_LABEL
-    )
-    # Day 12: int(result.high_leverage_flag) before SQLite insert
+    high_leverage_flag: Optional[
+        bool
+    ]  # True if D/E > threshold AND not Financials; None for Financials sector
+    # Day 12: int(result.high_leverage_flag) if not None, else None, before SQLite insert
 
 
 class IcrResult(NamedTuple):
@@ -242,9 +242,13 @@ def debt_to_equity(
         broad_sector != FINANCIALS_SECTOR_LABEL (flag suppressed for Financials).
     Threshold from DE_HIGH_LEVERAGE_THRESHOLD env var (default 5.0).
     """
+    is_financials = broad_sector == FINANCIALS_SECTOR_LABEL
+
     # Debt-free case
     if pd.isna(borrowings) or borrowings == 0:
-        return DebtEquityResult(value=0.0, high_leverage_flag=False)
+        return DebtEquityResult(
+            value=0.0, high_leverage_flag=None if is_financials else False
+        )
 
     if pd.isna(equity_capital) or pd.isna(reserves):
         return None
@@ -255,8 +259,8 @@ def debt_to_equity(
 
     value = borrowings / denom
     threshold = float(os.getenv("DE_HIGH_LEVERAGE_THRESHOLD", "5.0"))
-    is_financials = broad_sector == FINANCIALS_SECTOR_LABEL
-    high_leverage_flag = (value > threshold) and not is_financials
+    # Financials -> flag is NULL (not applicable); others -> True/False
+    high_leverage_flag = None if is_financials else (value > threshold)
 
     return DebtEquityResult(value=value, high_leverage_flag=high_leverage_flag)
 
