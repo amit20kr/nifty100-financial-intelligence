@@ -37,10 +37,10 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("migrate")
 
-# SCHEMA CANONICAL SOURCE OF TRUTH: src/etl/schema.sql
+# SCHEMA CANONICAL SOURCE OF TRUTH: db/schema.sql
 # migration files (002, 003, 004...) exist ONLY to upgrade pre-existing dev DBs
 # that predate the schema.sql bake-in. For any new DB, schema.sql is authoritative.
-# If you add a column: (1) add to src/etl/schema.sql first, (2) mirror to db/schema.sql,
+# If you add a column: (1) add to db/schema.sql,
 # (3) add to COLUMNS_TO_ADD here for existing-DB upgrades. Never edit only one.
 MIGRATION_VERSION = "004_add_pct_numeric_columns"
 

@@ -20,7 +20,7 @@ Design decisions (locked):
   - All cross-checks (ROCE, ROE, capex) logged to output/ratio_edge_cases.log with category tag
   - capital_allocation.csv emitted at end with 8 spec-defined pattern labels
 
-Canonical schema source: src/etl/schema.sql (see comment in db/migrations/migrate.py)
+Canonical schema source: db/schema.sql (see comment in db/migrations/migrate.py)
 """
 
 import csv

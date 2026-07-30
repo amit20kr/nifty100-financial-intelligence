@@ -29,6 +29,7 @@ output/
 reports/htmlcov/
 reports/*.pdf
 reports/*.html
+reports/*.png
 
 # === Logs ===
 *.log

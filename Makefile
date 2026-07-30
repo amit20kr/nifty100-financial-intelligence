@@ -1,4 +1,4 @@
-.PHONY: load ratios migrate populate test test-unit test-integration report dashboard api clean setup validate db-check clean-db coverage
+.PHONY: load ratios migrate populate test test-unit test-integration report dashboard api clean setup validate db-check clean-db coverage screener screener-export
 
 setup:
 	python -m venv .venv
@@ -15,6 +15,18 @@ db-check:
 
 ratios:
 	.venv/Scripts/python -m src.analytics.ratio_engine
+
+screener:
+	.venv/Scripts/python -m src.screener.engine
+
+screener-export:
+	.venv/Scripts/python -m src.screener.export
+
+peer-rank:
+	.venv/Scripts/python -m src.analytics.peer
+
+radar-charts:
+	.venv/Scripts/python -m src.analytics.radar
 
 migrate:
 	.venv/Scripts/python db/migrations/migrate.py

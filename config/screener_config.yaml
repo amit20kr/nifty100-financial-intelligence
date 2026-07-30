@@ -1,0 +1,73 @@
+metrics:
+  sales:
+    column: sales
+    operator: min
+    default_threshold: 0.0
+  net_profit:
+    column: net_profit
+    operator: min
+    default_threshold: 0.0
+  operating_profit_margin_pct:
+    column: operating_profit_margin_pct
+    operator: min
+    default_threshold: 0.0
+  return_on_equity_pct:
+    column: return_on_equity_pct
+    operator: min
+    default_threshold: 10.0
+  return_on_capital_employed_pct:
+    column: return_on_capital_employed_pct
+    operator: min
+    default_threshold: 10.0
+  debt_to_equity:
+    column: debt_to_equity
+    operator: max
+    default_threshold: 2.0
+  interest_coverage:
+    column: interest_coverage
+    operator: min
+    default_threshold: 1.5
+  revenue_cagr_5yr:
+    column: revenue_cagr_5yr
+    operator: min
+    default_threshold: 0.0
+  pat_cagr_5yr:
+    column: pat_cagr_5yr
+    operator: min
+    default_threshold: 0.0
+  free_cash_flow_cr:
+    column: free_cash_flow_cr
+    operator: min
+    default_threshold: 0.0
+  cash_from_operations_cr:
+    column: cash_from_operations_cr
+    operator: min
+    default_threshold: 0.0
+  market_cap_crore:
+    column: market_cap_crore
+    operator: min
+    default_threshold: 0.0
+  pe_ratio:
+    column: pe_ratio
+    operator: max
+    default_threshold: 100.0
+  pb_ratio:
+    column: pb_ratio
+    operator: max
+    default_threshold: 15.0
+  dividend_yield_pct:
+    column: dividend_yield_pct
+    operator: min
+    default_threshold: 0.0
+  eps_cagr_5yr:
+    column: eps_cagr_5yr
+    operator: min
+    default_threshold: 0.0
+  asset_turnover:
+    column: asset_turnover
+    operator: min
+    default_threshold: 0.0
+  dividend_payout_ratio_pct:
+    column: dividend_payout_ratio_pct
+    operator: max          # lower payout = more sustainable; filter removes high-payout companies
+    default_threshold: 100.0

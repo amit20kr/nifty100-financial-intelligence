@@ -47,7 +47,7 @@ SUPPORTING_DIR = Path(os.getenv("SUPPORTING_DATA_DIR", "data/supporting"))
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "output"))
 DB_DIR = Path("db")
 DB_PATH = DB_DIR / "nifty100.db"
-SCHEMA_PATH = Path("src/etl/schema.sql")
+SCHEMA_PATH = DB_DIR / "schema.sql"
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +139,7 @@ DATASET_REGISTRY: list[dict] = [
         "filename": "market_cap.xlsx",
         "directory": SUPPORTING_DIR,
         "header_row": 0,
-        "has_year": False,
+        "has_year": True,  # Canonicalise bare '2024' → '2024-03' via normalize_year_series
         "pk_cols": ["company_id", "year"],
     },
     {

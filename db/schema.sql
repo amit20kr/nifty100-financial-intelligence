@@ -217,3 +217,23 @@ CREATE TABLE peer_groups (
     is_benchmark INTEGER,
     FOREIGN KEY (company_id) REFERENCES companies(id)
 );
+
+-- 13. peer_percentiles
+-- Sprint 3 Day 18: Peer percentile rankings
+CREATE TABLE peer_percentiles (
+    company_id TEXT,
+    peer_group_name TEXT,
+    metric TEXT,
+    value REAL,
+    percentile_rank REAL,
+    year TEXT,
+    year_mismatch_flag INTEGER,
+    PRIMARY KEY (company_id, peer_group_name, metric, year),
+    FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+
+-- Schema Migrations Tracking
+CREATE TABLE schema_migrations (
+    version TEXT PRIMARY KEY,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
