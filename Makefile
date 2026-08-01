@@ -28,6 +28,9 @@ peer-rank:
 radar-charts:
 	.venv/Scripts/python -m src.analytics.radar
 
+peer-export:
+	.venv/Scripts/python -m src.analytics.export_peers
+
 migrate:
 	.venv/Scripts/python db/migrations/migrate.py
 

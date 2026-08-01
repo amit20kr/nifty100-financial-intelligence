@@ -66,7 +66,7 @@ def test_de_high_leverage_financials_suppressed():
     assert result is not None
     assert result.value > 5.0
     assert (
-        result.high_leverage_flag is False
+        result.high_leverage_flag is None
     )  # suppressed — structurally normal for banks
 
 
