@@ -122,8 +122,16 @@ def winsorise_and_scale(
     IMPORTANT: Caller must pre-filter to non-null values for P10/P90 computation,
     then apply this function. Nulls should be scored 0 afterward by the caller.
     """
-    p_low = np.nanpercentile(values.dropna(), lower_pct)
-    p_high = np.nanpercentile(values.dropna(), upper_pct)
+    import warnings
+
+    clean_vals = values.dropna()
+    if len(clean_vals) == 0:
+        return pd.Series(np.nan, index=values.index)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="Mean of empty slice")
+        p_low = np.nanpercentile(clean_vals, lower_pct)
+        p_high = np.nanpercentile(clean_vals, upper_pct)
 
     clipped = values.clip(lower=p_low, upper=p_high)
 

@@ -76,6 +76,11 @@ make ratios
 
 # 7. Test
 make test
+
+# 8. Run Dashboard
+make dashboard
+# Or directly:
+streamlit run src/dashboard/app.py
 ```
 
 ---
@@ -136,9 +141,9 @@ Raw data is sourced from [Screener.in](https://www.screener.in) exports for all 
 
 - [x] Sprint 1 — ETL Data Foundation (92 companies, 10 tables, 106 tests)
 - [x] Sprint 2 Days 08–10 — Ratio Engine (profitability, leverage, CAGR)
-- [ ] Sprint 2 Days 11–14 — Cash Flow KPIs, DB population, verification
-- [ ] Sprint 3 — Rules-based screener + scoring engine
-- [ ] Sprint 4 — Dashboard, PDF reports, FastAPI
+- [x] Sprint 2 Days 11–14 — Cash Flow KPIs, DB population, verification
+- [x] Sprint 3 — Rules-based screener + scoring engine
+- [x] Sprint 4 — Dashboard, PDF reports, FastAPI
 
 ---
 
