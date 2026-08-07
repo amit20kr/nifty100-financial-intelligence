@@ -12,9 +12,11 @@
 | **Profitability Ratios** | NPM, OPM, ROE, ROCE, ROA — with OPM cross-check logging | ✅ Day 08 |
 | **Leverage & Efficiency** | D/E, ICR (at-risk flag), Net Debt, Asset Turnover | ✅ Day 09 |
 | **CAGR Engine** | 3/5/10yr Revenue, PAT, EPS CAGR with 7-scenario edge classifier | ✅ Day 10 |
-| **Cash Flow KPIs** | FCF, CapEx Intensity, FCF Conversion, 8-pattern classifier | 🔄 Day 11 |
-| **DB Population** | Full `financial_ratios` table population for 92 companies | ⏳ Day 12 |
-| **Screener** | Configurable rules-based stock screener (Sprint 3) | ⏳ |
+| **Cash Flow KPIs** | FCF, CapEx Intensity, FCF Conversion, 8-pattern classifier | ✅ Sprint 2 |
+| **DB Population** | Full `financial_ratios` table population for 92 companies | ✅ Sprint 2 |
+| **Screener & Scoring** | Configurable rules-based screener & composite scoring engine | ✅ Sprint 3 |
+| **Streamlit Dashboard** | Interactive dashboard with screener, peers, trends & valuation | ✅ Sprint 4 |
+| **NLP & PDF Reports** | Auto Pros/Cons generator, PDF Tearsheets & Sector Reports | ✅ Sprint 5 |
 
 ---
 
@@ -29,9 +31,10 @@ nifty100-financial-intelligence/
 │   │   ├── ratios.py     # Profitability + Leverage pure functions (Day 08-09)
 │   │   ├── cagr.py       # CAGR engine + window extractor (Day 10)
 │   │   └── ratio_engine.py
-│   ├── reporting/
-│   ├── dashboard/        # Streamlit app
-│   └── api/              # FastAPI endpoints
+│   ├── screener/         # Composite scoring & filtering engine (Sprint 3)
+│   ├── dashboard/        # Streamlit app (Sprint 4)
+│   ├── nlp/              # Auto Pros/Cons text generation (Sprint 5)
+│   └── reports/          # ReportLab PDF tearsheets & summaries (Sprint 5)
 ├── db/
 │   ├── schema.sql        # Source of truth for DB schema
 │   └── migrations/
@@ -140,11 +143,42 @@ Raw data is sourced from [Screener.in](https://www.screener.in) exports for all 
 ## 🗺 Roadmap
 
 - [x] Sprint 1 — ETL Data Foundation (92 companies, 10 tables, 106 tests)
-- [x] Sprint 2 Days 08–10 — Ratio Engine (profitability, leverage, CAGR)
-- [x] Sprint 2 Days 11–14 — Cash Flow KPIs, DB population, verification
-- [x] Sprint 3 — Rules-based screener + scoring engine
-- [x] Sprint 4 — Dashboard, PDF reports, FastAPI
+- [x] Sprint 2 — Ratio Engine, Cash Flow KPIs, DB population, verification
+- [x] Sprint 3 — Screener Engine, Composite Scores, Peer Analytics, Radar Charts
+- [x] Sprint 4 — Streamlit Financial Dashboard and Valuation Module
+- [x] Sprint 5 — NLP Pros/Cons Generator, Cash Flow Intelligence, PDF Reports (Tearsheets, Sector, Portfolio)
 
 ---
 
-*Built with Python 3.12 · SQLite · pandas · pytest · Streamlit · FastAPI*
+## 📖 Detailed Walkthrough (Sprint 1 to 5)
+
+This project has been built in 5 systematic sprints to create a complete quantitative and qualitative analytics pipeline.
+
+### Sprint 1: ETL & Data Foundation
+- Built a robust ETL pipeline to parse and load raw Excel data from Screener.in for 92 Nifty 100 companies.
+- Normalized 10 core tables (Profit & Loss, Balance Sheet, Cash Flow, Market Cap, etc.) into a strictly typed SQLite database.
+
+### Sprint 2: Financial Ratio Engine
+- Developed pure Python functions to compute 50+ financial KPIs (ROE, ROCE, D/E, ICR, OPM, NPM).
+- Built a complex CAGR engine to calculate 3, 5, and 10-year growth rates (Revenue, PAT, EPS) with edge-case classifiers.
+- Implemented Cash Flow Intelligence (FCF, CapEx Intensity, FCF Conversion) and populated the central `financial_ratios` table.
+
+### Sprint 3: Screener & Scoring Engine
+- Created a configurable, rules-based stock screener.
+- Developed a Composite Scoring system that ranks companies based on Value, Growth, Profitability, and Quality.
+- Built Peer Analytics and generated data for Radar Charts to visualize company strengths visually against sector peers.
+
+### Sprint 4: Streamlit Dashboard
+- Built a multi-page interactive Streamlit dashboard (`src/dashboard/app.py`).
+- Integrated Screener, Peer Comparisons, Trend analysis, Sector insights, and a dedicated Valuation module directly into the UI.
+
+### Sprint 5: NLP & PDF Reporting
+- **NLP Text Parser:** Added an automated Pros/Cons generator that translates raw financial data into human-readable insights using 24 objective heuristic rules and confidence scores.
+- **Cash Flow Intelligence:** Expanded cash flow analytics to identify distress signals and deleveraging trends.
+- **Automated PDF Reports:** Used `ReportLab` to batch-generate 91 company tearsheet PDFs (complete with charts, CF waterfalls, and KPIs), 10 Sector Summary PDFs, and a comprehensive Portfolio Summary.
+
+The pipeline is fully automated and idempotent. Running the master scripts regenerates the database, calculates all ratios, flags edge cases, scores the companies, and compiles the final PDF reports.
+
+---
+
+*Built with Python 3.12 · SQLite · pandas · pytest · Streamlit · ReportLab*
