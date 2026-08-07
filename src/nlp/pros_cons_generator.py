@@ -662,133 +662,6 @@ def con_rule_12(df: pd.DataFrame, company_id: str) -> List[Dict]:
     return []
 
 
-# --- FALLBACK CON RULES (uses P&L/BS directly, no dependency on financial_ratios computed columns) ---
-# These are triggered only when a company still has 0 cons after all 12 primary rules.
-
-
-def con_rule_F01(df_pl: pd.DataFrame, company_id: str) -> List[Dict]:
-    """Fallback: OPM (from P&L) declining for 3 consecutive years."""
-    if len(df_pl) < 3:
-        return []
-    s = df_pl[["year", "sales", "operating_profit"]].copy()
-    s = s.dropna(subset=["sales", "operating_profit"])
-    s = s[s["sales"] > 0]
-    if len(s) < 3:
-        return []
-    s = s.sort_values("year")
-    s["opm"] = (s["operating_profit"] / s["sales"]) * 100.0
-    vals = s["opm"].tolist()[-3:]
-    years = s["year"].tolist()[-3:]
-    if not _is_contiguous_streak(years, 3):
-        return []
-    if vals[2] < vals[1] < vals[0]:
-        return [
-            {
-                "company_id": company_id,
-                "type": "con",
-                "rule_id": "con_F01",
-                "text": f"Operating profit margin has been declining for 3 consecutive years (latest: {vals[2]:.1f}%)",
-                "confidence_pct": 75.0,
-            }
-        ]
-    return []
-
-
-def con_rule_F02(df_pl: pd.DataFrame, company_id: str) -> List[Dict]:
-    """Fallback: Net Profit Margin (from P&L) below 5% in latest year."""
-    s = df_pl.dropna(subset=["net_profit", "sales"])
-    s = s[s["sales"] > 0]
-    if s.empty:
-        return []
-    latest = s.iloc[-1]
-    npm = (latest["net_profit"] / latest["sales"]) * 100.0
-    if npm < 5.0:
-        return [
-            {
-                "company_id": company_id,
-                "type": "con",
-                "rule_id": "con_F02",
-                "text": f"Net profit margin of {npm:.1f}% is low, indicating limited earnings power relative to revenue",
-                "confidence_pct": 70.0,
-            }
-        ]
-    return []
-
-
-def con_rule_F03(
-    df_pl: pd.DataFrame, df_bs: pd.DataFrame, company_id: str
-) -> List[Dict]:
-    """Fallback: ROCE proxy (Operating Profit / Total Assets) below 10%."""
-    if df_pl.empty or df_bs.empty:
-        return []
-    latest_pl = df_pl.dropna(subset=["operating_profit"]).sort_values("year")
-    latest_bs = df_bs.dropna(subset=["total_assets"]).sort_values("year")
-    if latest_pl.empty or latest_bs.empty:
-        return []
-    row_pl = latest_pl.iloc[-1]
-    row_bs = latest_bs.iloc[-1]
-    # only proceed if years are within 1 of each other
-    if abs(row_pl["year"] - row_bs["year"]) > 1:
-        return []
-    if row_bs["total_assets"] <= 0:
-        return []
-    roce_proxy = (row_pl["operating_profit"] / row_bs["total_assets"]) * 100.0
-    if roce_proxy < 10.0:
-        return [
-            {
-                "company_id": company_id,
-                "type": "con",
-                "rule_id": "con_F03",
-                "text": f"Return on assets proxy of {roce_proxy:.1f}% suggests the business is not generating sufficient returns on its capital base",
-                "confidence_pct": 70.0,
-            }
-        ]
-    return []
-
-
-def con_rule_F04(df_pl: pd.DataFrame, company_id: str) -> List[Dict]:
-    """Fallback: Revenue growth has been below 10% in each of the last 3 years (momentum check)."""
-    s = df_pl.dropna(subset=["sales"])
-    s = s.sort_values("year")
-    if len(s) < 4:
-        return []
-    years = s["year"].tolist()[-4:]
-    if not _is_contiguous_streak(years, 4):
-        return []
-    vals = s["sales"].tolist()[-4:]
-    growths = [(vals[i] - vals[i - 1]) / vals[i - 1] * 100.0 for i in range(1, 4)]
-    if all(g < 10.0 for g in growths):
-        avg_g = sum(growths) / len(growths)
-        return [
-            {
-                "company_id": company_id,
-                "type": "con",
-                "rule_id": "con_F04",
-                "text": f"Revenue growth has consistently remained below 10% over the past 3 years (avg: {avg_g:.1f}%), limiting near-term re-rating potential",
-                "confidence_pct": 65.0,
-            }
-        ]
-    return []
-
-
-def con_rule_F00(company_id: str, sector: str) -> List[Dict]:
-    """Safety-net fallback: guaranteed con for any company with 0 cons.
-    This rule reflects the inherent risks of equity investment."""
-    return [
-        {
-            "company_id": company_id,
-            "type": "con",
-            "rule_id": "con_F00",
-            "text": (
-                f"As a {sector} sector company in a competitive market, "
-                f"the stock carries standard equity risks including valuation premium, "
-                f"sector cyclicality, and macroeconomic sensitivity that investors must monitor"
-            ),
-            "confidence_pct": 62.0,
-        }
-    ]
-
-
 # --- MAIN PIPELINE ---
 
 
@@ -834,8 +707,6 @@ def generate_pros_cons(conn: sqlite3.Connection) -> pd.DataFrame:
         if c_fr.empty and c_pl.empty:
             continue
 
-        company_start_idx = len(results)
-
         # Pros
         results.extend(pro_rule_01(c_fr, cid))
         results.extend(pro_rule_02(c_fr, cid))
@@ -863,28 +734,6 @@ def generate_pros_cons(conn: sqlite3.Connection) -> pd.DataFrame:
         results.extend(con_rule_10(c_fr, cid))
         results.extend(con_rule_11(c_fr, c_pl, cid))
         results.extend(con_rule_12(c_fr, cid))
-
-        # Check if this company has any cons so far
-        company_results = results[company_start_idx:]
-        has_con = any(r["type"] == "con" for r in company_results)
-
-        if not has_con:
-            # Fallback Cons: use P&L/BS data directly (not financial_ratios computed columns)
-            fallback_con = []
-            fallback_con.extend(con_rule_F01(c_pl, cid))
-            if not fallback_con:
-                fallback_con.extend(con_rule_F02(c_pl, cid))
-            if not fallback_con:
-                fallback_con.extend(con_rule_F03(c_pl, c_bs, cid))
-            if not fallback_con:
-                fallback_con.extend(con_rule_F04(c_pl, cid))
-            # Ultimate safety-net: guaranteed con
-            if not fallback_con:
-                fallback_con.extend(con_rule_F00(cid, sector))
-            results.extend(fallback_con)
-            logger.debug(
-                f"[{cid}] Used fallback con rule(s): {[r['rule_id'] for r in fallback_con]}"
-            )
 
     if results:
         df_res = pd.DataFrame(results)

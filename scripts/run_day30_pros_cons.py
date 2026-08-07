@@ -50,8 +50,7 @@ def main():
         f"Generated {total_rules_triggered} total insights ({pro_count} Pros, {con_count} Cons)"
     )
 
-    # Gap Validation — after the generator runs its fallback chain, every company
-    # should have at least 1 pro and 1 con.  Log any residual gaps as warnings only.
+    # Gap Validation
     comp_pros = res_df[res_df["type"] == "pro"].groupby("company_id").size()
     comp_cons = res_df[res_df["type"] == "con"].groupby("company_id").size()
 
@@ -60,17 +59,27 @@ def main():
 
     if zero_pros or zero_cons:
         logger.warning(
-            f"Residual gaps after fallback rules — zero_pros: {len(zero_pros)}, zero_cons: {len(zero_cons)}"
+            f"Gaps detected \u2014 zero_pros: {len(zero_pros)}, zero_cons: {len(zero_cons)}"
         )
         gaps = []
+        fr_df = pd.read_sql("SELECT * FROM financial_ratios WHERE year != 'TTM'", conn)
         for c in zero_pros:
             gaps.append(
                 {"company_id": c, "missing": "pro", "reason": "no_rule_triggered"}
             )
         for c in zero_cons:
-            gaps.append(
-                {"company_id": c, "missing": "con", "reason": "no_rule_triggered"}
-            )
+            c_fr = fr_df[fr_df["company_id"] == c]
+            if c_fr.empty:
+                reason = "insufficient_data"
+            else:
+                latest = c_fr.iloc[-1]
+                if pd.isna(latest.get("return_on_capital_employed_pct")) and pd.isna(
+                    latest.get("operating_profit_margin_pct")
+                ):
+                    reason = "insufficient_data"
+                else:
+                    reason = "no_rule_triggered"
+            gaps.append({"company_id": c, "missing": "con", "reason": reason})
         gap_df = pd.DataFrame(gaps)
         os.makedirs("output", exist_ok=True)
         gap_file = "output/pros_cons_coverage_gaps.csv"
@@ -103,7 +112,7 @@ def main():
     print(
         f"\n  Average Insights per Company : {total_rules_triggered / total_companies:.1f}"
     )
-    print("  Zero-hit coverage gaps : NONE")
+    print(f"  Zero-hit coverage gaps : {len(zero_pros) + len(zero_cons)}")
     print("=" * 60)
     print("[DONE] Day 30 Complete")
     print("=" * 60 + "\n")
