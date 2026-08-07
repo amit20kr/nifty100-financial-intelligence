@@ -8,9 +8,11 @@ from src.screener.engine import FilterEngine
 load_dotenv()
 DB_PATH = os.getenv("DB_PATH", "db/nifty100.db")
 
+
 def _get_connection():
     # Helper to avoid repetitive connection code, but each cached function calls this inside.
     return sqlite3.connect(DB_PATH)
+
 
 @st.cache_data(ttl=600)
 def get_companies():
@@ -23,17 +25,20 @@ def get_companies():
     except Exception:
         return pd.DataFrame()
 
+
 @st.cache_data(ttl=600)
 def get_ratios(company_id: str, year: str = None):
     """
-    Fetch financial ratios. 
+    Fetch financial ratios.
     If year=None, returns full multi-year time series.
     If year is specified, returns single-row filter.
     """
     try:
         with _get_connection() as conn:
             if year:
-                query = "SELECT * FROM financial_ratios WHERE company_id = ? AND year = ?"
+                query = (
+                    "SELECT * FROM financial_ratios WHERE company_id = ? AND year = ?"
+                )
                 params = (company_id, year)
             else:
                 query = "SELECT * FROM financial_ratios WHERE company_id = ? ORDER BY year DESC"
@@ -43,16 +48,20 @@ def get_ratios(company_id: str, year: str = None):
     except Exception:
         return pd.DataFrame()
 
+
 @st.cache_data(ttl=600)
 def get_pl(company_id: str):
     """Fetch P&L statements for a company."""
     try:
         with _get_connection() as conn:
-            query = "SELECT * FROM profitandloss WHERE company_id = ? ORDER BY year DESC"
+            query = (
+                "SELECT * FROM profitandloss WHERE company_id = ? ORDER BY year DESC"
+            )
             df = pd.read_sql_query(query, conn, params=(company_id,))
             return df
     except Exception:
         return pd.DataFrame()
+
 
 @st.cache_data(ttl=600)
 def get_bs(company_id: str):
@@ -65,6 +74,7 @@ def get_bs(company_id: str):
     except Exception:
         return pd.DataFrame()
 
+
 @st.cache_data(ttl=600)
 def get_cf(company_id: str):
     """Fetch Cashflow statements for a company."""
@@ -75,6 +85,7 @@ def get_cf(company_id: str):
             return df
     except Exception:
         return pd.DataFrame()
+
 
 @st.cache_data(ttl=600)
 def get_sectors():
@@ -87,6 +98,7 @@ def get_sectors():
     except Exception:
         return pd.DataFrame()
 
+
 @st.cache_data(ttl=600)
 def get_peers(group_name: str):
     """Fetch peer group and their percentiles."""
@@ -98,6 +110,7 @@ def get_peers(group_name: str):
     except Exception:
         return pd.DataFrame()
 
+
 @st.cache_data(ttl=600)
 def get_valuation(company_id: str = None):
     """
@@ -108,15 +121,16 @@ def get_valuation(company_id: str = None):
         val_path = os.getenv("VALUATION_SUMMARY_PATH", "output/valuation_summary.xlsx")
         if not os.path.exists(val_path):
             return pd.DataFrame()
-            
+
         df = pd.read_excel(val_path)
-        
+
         if company_id:
-            df = df[df['company_id'] == company_id]
-            
+            df = df[df["company_id"] == company_id]
+
         return df
     except Exception:
         return pd.DataFrame()
+
 
 @st.cache_data(ttl=600)
 def get_universe_ratios(year: str = None):
@@ -137,6 +151,7 @@ def get_universe_ratios(year: str = None):
     except Exception:
         return pd.DataFrame()
 
+
 @st.cache_data(ttl=600)
 def get_universe_market_cap(year: str = None):
     """
@@ -156,6 +171,7 @@ def get_universe_market_cap(year: str = None):
     except Exception:
         return pd.DataFrame()
 
+
 @st.cache_data(ttl=600)
 def get_prosandcons(company_id: str):
     """Fetch pros and cons for a given company."""
@@ -167,6 +183,7 @@ def get_prosandcons(company_id: str):
     except Exception:
         return pd.DataFrame()
 
+
 @st.cache_resource
 def get_engine():
     """Cache the FilterEngine instance for preset usage."""
@@ -176,6 +193,7 @@ def get_engine():
     except Exception as e:
         st.error(f"Error loading FilterEngine: {e}")
         return None
+
 
 @st.cache_data(ttl=600)
 def get_screener_data():
@@ -187,6 +205,7 @@ def get_screener_data():
         return engine.df.copy()
     return pd.DataFrame()
 
+
 @st.cache_data(ttl=600)
 def get_peer_groups():
     """Fetch distinct list of peer groups."""
@@ -194,9 +213,10 @@ def get_peer_groups():
         with _get_connection() as conn:
             query = "SELECT DISTINCT peer_group_name FROM peer_groups ORDER BY peer_group_name"
             df = pd.read_sql_query(query, conn)
-            return df['peer_group_name'].tolist()
+            return df["peer_group_name"].tolist()
     except Exception:
         return []
+
 
 @st.cache_data(ttl=600)
 def get_peer_percentiles(group_name: str):
@@ -213,5 +233,5 @@ def get_peer_percentiles(group_name: str):
             """
             df = pd.read_sql_query(query, conn, params=(group_name,))
             return df
-    except Exception as e:
+    except Exception:
         return pd.DataFrame()

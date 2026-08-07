@@ -65,14 +65,12 @@ from __future__ import annotations
 
 import logging
 import os
-import sqlite3
-from typing import Dict, Optional, Tuple
+from typing import Dict
 
 import numpy as np
 import pandas as pd
 
-from src.analytics.cagr import CagrResult, calculate_cagr, extract_cagr_window
-from src.analytics.constants import CagrFlag
+from src.analytics.cashflow_kpis import bulk_compute_fcf_cagr
 
 log = logging.getLogger(__name__)
 
@@ -148,47 +146,8 @@ def winsorise_and_scale(
 
 
 # ---------------------------------------------------------------------------
-# Bulk-load FCF history and compute 5yr CAGR for all companies
-# ---------------------------------------------------------------------------
-def _bulk_compute_fcf_cagr(
-    company_ids: list, db_path: str
-) -> Dict[str, Tuple[Optional[float], Optional[str]]]:
-    """
-    Compute 5yr FCF CAGR for all companies in a single bulk-load operation.
-
-    Returns:
-        Dict mapping company_id → (cagr_value, flag_label).
-        cagr_value: float percentage or None.
-        flag_label: None if computed, CagrFlag name string if edge case.
-    """
-    with sqlite3.connect(db_path) as conn:
-        all_fcf = pd.read_sql_query(
-            "SELECT company_id, year, free_cash_flow_cr FROM financial_ratios ORDER BY company_id, year",
-            conn,
-        )
-
-    results: Dict[str, Tuple[Optional[float], Optional[str]]] = {}
-
-    for cid in company_ids:
-        company_df = all_fcf[all_fcf["company_id"] == cid].copy()
-
-        if company_df.empty:
-            results[cid] = (None, CagrFlag.INSUFFICIENT.name)
-            continue
-
-        start_val, end_val, years, insufficient = extract_cagr_window(
-            company_df, window_years=5, metric_col="free_cash_flow_cr"
-        )
-        cagr_result: CagrResult = calculate_cagr(
-            start_val, end_val, years, insufficient_data=insufficient
-        )
-        flag_name = cagr_result.flag.name if cagr_result.flag else None
-        results[cid] = (cagr_result.value, flag_name)
-
-    return results
 
 
-# ---------------------------------------------------------------------------
 # Main: compute_composite_score
 # ---------------------------------------------------------------------------
 def compute_composite_score(df: pd.DataFrame, db_path: str) -> pd.DataFrame:
@@ -220,7 +179,7 @@ def compute_composite_score(df: pd.DataFrame, db_path: str) -> pd.DataFrame:
     # -----------------------------------------------------------------------
 
     # 1a. FCF CAGR 5yr — bulk-loaded, not per-company round-trip
-    fcf_cagr_results = _bulk_compute_fcf_cagr(df["company_id"].tolist(), db_path)
+    fcf_cagr_results = bulk_compute_fcf_cagr(df["company_id"].tolist(), db_path)
     df["fcf_cagr_5yr"] = df["company_id"].map(
         lambda cid: fcf_cagr_results.get(cid, (None, None))[0]
     )

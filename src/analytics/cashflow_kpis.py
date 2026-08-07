@@ -1,6 +1,8 @@
 import os
 import math
-from typing import Optional, NamedTuple, List
+import sqlite3
+import pandas as pd
+from typing import Optional, NamedTuple, List, Dict, Tuple
 
 from src.analytics.constants import (
     FcfConversionFlag,
@@ -9,7 +11,9 @@ from src.analytics.constants import (
     CashflowPatternLabel,
     CashflowPatternFlag,
     CfoQualityScoreFlag,
+    CagrFlag,
 )
+from src.analytics.cagr import CagrResult, calculate_cagr, extract_cagr_window
 
 
 class FcfResult(NamedTuple):
@@ -243,3 +247,93 @@ def verify_capex_cross_check(
         return f"CAPEX MISMATCH [{company_name} {year}]: Computed {computed_capex} vs Pre-seeded {pre_seeded_capex} (Diff: {diff_pct:.2f}%)"
 
     return None
+
+
+def bulk_compute_fcf_cagr(
+    company_ids: list, db_path: str
+) -> Dict[str, Tuple[Optional[float], Optional[str]]]:
+    """
+    Compute 5yr FCF CAGR for all companies in a single bulk-load operation.
+
+    Returns:
+        Dict mapping company_id → (cagr_value, flag_label).
+        cagr_value: float percentage or None.
+        flag_label: None if computed, CagrFlag name string if edge case.
+    """
+    with sqlite3.connect(db_path) as conn:
+        all_fcf = pd.read_sql_query(
+            "SELECT company_id, year, free_cash_flow_cr FROM financial_ratios ORDER BY company_id, year",
+            conn,
+        )
+
+    results: Dict[str, Tuple[Optional[float], Optional[str]]] = {}
+
+    for cid in company_ids:
+        company_df = all_fcf[all_fcf["company_id"] == cid].copy()
+
+        if company_df.empty:
+            results[cid] = (None, CagrFlag.INSUFFICIENT.name)
+            continue
+
+        start_val, end_val, years, insufficient = extract_cagr_window(
+            company_df, window_years=5, metric_col="free_cash_flow_cr"
+        )
+        cagr_result: CagrResult = calculate_cagr(
+            start_val, end_val, years, insufficient_data=insufficient
+        )
+        flag_name = cagr_result.flag.name if cagr_result.flag else None
+        results[cid] = (cagr_result.value, flag_name)
+
+    return results
+
+
+def check_distress_signal(cfo: Optional[float], cff: Optional[float]) -> bool:
+    """
+    Evaluates if a company has a distress signal based on latest cash flows.
+    A distress signal is triggered when operating cash flow is negative and
+    financing cash flow is positive (borrowing to survive).
+
+    Args:
+        cfo: Cash from operating activities
+        cff: Cash from financing activities
+
+    Returns:
+        True if cfo < 0 and cff > 0, False otherwise (including missing data)
+    """
+    if cfo is None or cff is None or math.isnan(cfo) or math.isnan(cff):
+        return False
+
+    return cfo < 0 and cff > 0
+
+
+def check_deleveraging(
+    cff: Optional[float],
+    prev_borrowing: Optional[float],
+    current_borrowing: Optional[float],
+) -> Optional[bool]:
+    """
+    Evaluates if a company is deleveraging.
+    Requires negative financing cash flows and a reduction in borrowings year-over-year.
+
+    Args:
+        cff: Cash from financing activities
+        prev_borrowing: Total borrowings from the previous fiscal year
+        current_borrowing: Total borrowings from the current fiscal year
+
+    Returns:
+        True if deleveraging, False if not.
+        Returns None if prev_borrowing is missing (cannot determine YoY change).
+    """
+    if (
+        cff is None
+        or math.isnan(cff)
+        or current_borrowing is None
+        or math.isnan(current_borrowing)
+    ):
+        return False
+
+    if prev_borrowing is None or math.isnan(prev_borrowing):
+        return None
+
+    # If they were debt-free in both periods, they are not deleveraging (0 < 0 is False)
+    return (cff < 0) and (current_borrowing < prev_borrowing)

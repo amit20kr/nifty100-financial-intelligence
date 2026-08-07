@@ -1,10 +1,13 @@
 # ── permanent path fix (must be first) ──────────────────────────────────────
 # Uses an absolute file path so it works even before the project root is on
 # sys.path (Streamlit's page runner strips the project root from sys.path).
-import importlib.util as _ilu, pathlib as _pl
+import importlib.util as _ilu
+import pathlib as _pl
+
 _ps = _pl.Path(__file__).resolve().parent.parent / "utils" / "path_setup.py"
 _spec = _ilu.spec_from_file_location("path_setup", _ps)
-_mod = _ilu.module_from_spec(_spec); _spec.loader.exec_module(_mod)
+_mod = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_mod)
 del _ilu, _pl, _ps, _spec, _mod  # clean up bootstrap names
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -25,16 +28,21 @@ if not engine:
 if "preset_active" not in st.session_state:
     st.session_state.preset_active = "Custom"
 
+
 def set_preset(name):
     st.session_state.preset_active = name
+
 
 def clear_preset():
     st.session_state.preset_active = "Custom"
 
+
 # Layout
 st.sidebar.header("Presets")
 for preset in PRESETS.keys():
-    st.sidebar.button(preset, on_click=set_preset, args=(preset,), use_container_width=True)
+    st.sidebar.button(
+        preset, on_click=set_preset, args=(preset,), use_container_width=True
+    )
 
 st.sidebar.divider()
 st.sidebar.header("Custom Filters")
@@ -43,9 +51,13 @@ st.sidebar.caption("Modifying any slider switches to Custom mode.")
 # Sliders
 criteria_dict = {}
 
+
 def create_slider(label, key, metric, min_v, max_v, default, step=1.0):
-    val = st.sidebar.slider(label, min_v, max_v, default, step=step, key=key, on_change=clear_preset)
+    val = st.sidebar.slider(
+        label, min_v, max_v, default, step=step, key=key, on_change=clear_preset
+    )
     criteria_dict[metric] = val
+
 
 create_slider("Min ROE (%)", "roe", "return_on_equity_pct", -20.0, 50.0, 15.0)
 create_slider("Max D/E (x)", "de", "debt_to_equity", 0.0, 5.0, 1.0, 0.1)
@@ -72,38 +84,52 @@ else:
 
 if not df_result.empty:
     st.caption(f"**{len(df_result)}** companies match your filters")
-    
+
     companies_df = db.get_companies()
-    
+
     display_df = df_result.copy()
-    if 'company_name' not in display_df.columns:
-        display_df = display_df.merge(companies_df[['id', 'company_name']], left_on='company_id', right_on='id', how='left')
-    
-    front_cols = ['company_name', 'broad_sector', 'screener_composite_score']
-    
+    if "company_name" not in display_df.columns:
+        display_df = display_df.merge(
+            companies_df[["id", "company_name"]],
+            left_on="company_id",
+            right_on="id",
+            how="left",
+        )
+
+    front_cols = ["company_name", "broad_sector", "screener_composite_score"]
+
     metric_cols = [
-        'return_on_equity_pct', 'debt_to_equity', 'free_cash_flow_cr',
-        'revenue_cagr_5yr', 'pat_cagr_5yr', 'operating_profit_margin_pct',
-        'pe_ratio', 'pb_ratio', 'dividend_yield_pct', 'interest_coverage'
+        "return_on_equity_pct",
+        "debt_to_equity",
+        "free_cash_flow_cr",
+        "revenue_cagr_5yr",
+        "pat_cagr_5yr",
+        "operating_profit_margin_pct",
+        "pe_ratio",
+        "pb_ratio",
+        "dividend_yield_pct",
+        "interest_coverage",
     ]
-    
+
     display_cols = front_cols + [c for c in metric_cols if c in display_df.columns]
-    
+
     # Fallback if some presets drop standard metric columns
     display_cols = [c for c in display_cols if c in display_df.columns]
-    
+
     # Sort by screener_composite_score descending
-    if 'screener_composite_score' in display_df.columns:
-        display_df = display_df.sort_values(by='screener_composite_score', ascending=False)
-        
+    if "screener_composite_score" in display_df.columns:
+        display_df = display_df.sort_values(
+            by="screener_composite_score", ascending=False
+        )
+
     st.dataframe(display_df[display_cols], hide_index=True, use_container_width=True)
-    
+
     csv = display_df.to_csv(index=False)
     st.download_button(
         label="Download Results as CSV",
         data=csv,
-        file_name='screener_results.csv',
-        mime='text/csv'
+        file_name="screener_results.csv",
+        mime="text/csv",
     )
 else:
     st.warning("No companies match the current filter criteria.")

@@ -20,6 +20,7 @@ USAGE — add ONE line at the top of every page file, BEFORE any src.* import:
 The module executes setup() on first import and is then a no-op on re-import
 (Python's module cache prevents re-execution).
 """
+
 import sys
 from pathlib import Path
 
